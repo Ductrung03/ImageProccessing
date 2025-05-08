@@ -7,158 +7,195 @@ using System;
 
 public static class BprProcessor
 {
-    public static Bitmap ApplyBPR(Bitmap input, int[,] mask)
+    /// <summary>
+    /// Thay thế điểm ảnh lỗi sử dụng OpenCV Mat
+    /// </summary>
+    /// <param name="input">Ảnh đầu vào</param>
+    /// <param name="badPixelMask">Mặt nạ điểm ảnh lỗi (1: lỗi, 0: tốt)</param>
+    /// <returns>Ảnh đã được xử lý</returns>
+    public static Mat ApplyBPR(Mat input, Mat badPixelMask)
     {
-        int width = input.Width;
-        int height = input.Height;
-        Bitmap output = new Bitmap(input);
+        // Kiểm tra kích thước
+        if (input.Size() != badPixelMask.Size())
+            throw new ArgumentException("Kích thước ảnh đầu vào và mặt nạ điểm ảnh lỗi phải giống nhau");
 
-        // Sử dụng LockBits để tăng hiệu suất
-        BitmapData inputData = input.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
-        BitmapData outputData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
-        int stride = inputData.Stride;
+        // Tạo bản sao để lưu kết quả
+        Mat result = input.Clone();
+
+        // Convert ảnh sang grayscale nếu cần
+        Mat gray = new Mat();
+        if (input.Channels() == 3)
+            Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
+        else
+            gray = input;
+
+        // Lấy kích thước ảnh
+        int height = input.Rows;
+        int width = input.Cols;
+
         unsafe
         {
-            byte* inputPtr = (byte*)inputData.Scan0;
-            byte* outputPtr = (byte*)outputData.Scan0;
-
+            // Thực hiện thuật toán thay thế
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    if (mask[y, x] == 1) // Pixel lỗi
+                    // Kiểm tra nếu là điểm ảnh lỗi
+                    if (badPixelMask.At<byte>(y, x) == 1)
                     {
-                        int rSum = 0, gSum = 0, bSum = 0, count = 0;
-                        List<(int, int)> validNeighbors = new List<(int, int)>();
+                        // Trường hợp 1: Kiểm tra 8 pixel xung quanh
+                        int validNeighbors = 0;
+                        int sum = 0;
 
-                        // Kiểm tra 8 pixel xung quanh
                         for (int dy = -1; dy <= 1; dy++)
                         {
                             for (int dx = -1; dx <= 1; dx++)
                             {
-                                if (dx == 0 && dy == 0) continue;
+                                if (dx == 0 && dy == 0) continue; // Bỏ qua điểm hiện tại
+
                                 int nx = x + dx;
                                 int ny = y + dy;
-                                if (nx >= 0 && nx < width && ny >= 0 && ny < height && mask[ny, nx] == 0)
+
+                                // Kiểm tra giới hạn ảnh
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height)
                                 {
-                                    validNeighbors.Add((nx, ny));
-                                    int index = ny * stride + nx * 3;
-                                    bSum += inputPtr[index];
-                                    gSum += inputPtr[index + 1];
-                                    rSum += inputPtr[index + 2];
-                                    count++;
+                                    // Kiểm tra xem pixel này có tốt không
+                                    if (badPixelMask.At<byte>(ny, nx) == 0)
+                                    {
+                                        sum += gray.At<byte>(ny, nx);
+                                        validNeighbors++;
+                                    }
                                 }
                             }
                         }
 
-                        // Trường hợp 1: Có pixel tốt xung quanh
-                        if (count > 0)
+                        byte replacementValue;
+
+                        // Nếu có đủ điểm lân cận tốt
+                        if (validNeighbors >= 3)
                         {
-                            int index = y * stride + x * 3;
-                            outputPtr[index] = (byte)(bSum / count);
-                            outputPtr[index + 1] = (byte)(gSum / count);
-                            outputPtr[index + 2] = (byte)(rSum / count);
+                            replacementValue = (byte)(sum / validNeighbors);
                         }
-                        // Trường hợp 2: Không đủ pixel tốt, lấy pixel tốt gần nhất
-                        else if (validNeighbors.Count > 0)
-                        {
-                            var (nx, ny) = validNeighbors[0]; // Lấy pixel tốt gần nhất
-                            int srcIndex = ny * stride + nx * 3;
-                            int dstIndex = y * stride + x * 3;
-                            outputPtr[dstIndex] = inputPtr[srcIndex];
-                            outputPtr[dstIndex + 1] = inputPtr[srcIndex + 1];
-                            outputPtr[dstIndex + 2] = inputPtr[srcIndex + 2];
-                        }
-                        // Trường hợp 3: Không có pixel tốt, mở rộng ra vòng 16 pixel
                         else
                         {
+                            // Trường hợp 2: Mở rộng ra vòng 16 pixel
+                            int extendedSum = 0;
+                            int extendedNeighbors = 0;
+
                             for (int dy = -2; dy <= 2; dy++)
                             {
                                 for (int dx = -2; dx <= 2; dx++)
                                 {
-                                    if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue; // Bỏ qua vòng 8 pixel
+                                    // Bỏ qua vòng trong (đã kiểm tra ở trên)
+                                    if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue;
+
                                     int nx = x + dx;
                                     int ny = y + dy;
-                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && mask[ny, nx] == 0)
+
+                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height)
                                     {
-                                        int srcIndex = ny * stride + nx * 3;
-                                        int dstIndex = y * stride + x * 3;
-                                        outputPtr[dstIndex] = inputPtr[srcIndex];
-                                        outputPtr[dstIndex + 1] = inputPtr[srcIndex + 1];
-                                        outputPtr[dstIndex + 2] = inputPtr[srcIndex + 2];
-                                        goto Found; // Thoát khi tìm thấy pixel tốt
+                                        if (badPixelMask.At<byte>(ny, nx) == 0)
+                                        {
+                                            extendedSum += gray.At<byte>(ny, nx);
+                                            extendedNeighbors++;
+                                        }
                                     }
                                 }
                             }
-                            // Nếu không tìm thấy pixel tốt, giữ nguyên pixel
+
+                            if (extendedNeighbors > 0)
+                            {
+                                replacementValue = (byte)(extendedSum / extendedNeighbors);
+                            }
+                            else
+                            {
+                                // Trường hợp 3: Nếu không có điểm tốt, giữ nguyên giá trị gốc
+                                replacementValue = gray.At<byte>(y, x);
+                            }
                         }
-                    Found:;
+
+                        // Gán giá trị vào ảnh kết quả
+                        if (input.Channels() == 3)
+                        {
+                            Vec3b color = new Vec3b(replacementValue, replacementValue, replacementValue);
+                            result.Set(y, x, color);
+                        }
+                        else
+                        {
+                            result.Set(y, x, replacementValue);
+                        }
                     }
                 }
             }
         }
-        input.UnlockBits(inputData);
-        output.UnlockBits(outputData);
-        return output;
+
+        // Giải phóng tài nguyên
+        if (input != gray)
+            gray.Dispose();
+
+        return result;
     }
 
-    public static int[,] LoadBPRMask(string path, int targetWidth, int targetHeight)
+    /// <summary>
+    /// Load nhiều mặt nạ điểm ảnh lỗi và kết hợp chúng
+    /// </summary>
+    /// <param name="maskPaths">Danh sách đường dẫn tới các tệp CSV</param>
+    /// <param name="width">Chiều rộng mặt nạ</param>
+    /// <param name="height">Chiều cao mặt nạ</param>
+    /// <returns>Mặt nạ kết hợp</returns>
+    public static Mat CombineBadPixelMasks(string[] maskPaths, int width, int height)
     {
-        try
+        Mat combinedMask = Mat.Zeros(height, width, MatType.CV_8UC1);
+
+        foreach (string maskPath in maskPaths)
         {
-            var lines = File.ReadAllLines(path);
-            int originalHeight = lines.Length;
-            int originalWidth = lines[0].Split(';').Length;
+            if (!File.Exists(maskPath))
+                throw new FileNotFoundException($"Không tìm thấy file mặt nạ: {maskPath}");
 
-            // Đọc mặt nạ gốc
-            int[,] originalMask = new int[originalHeight, originalWidth];
-            for (int y = 0; y < originalHeight; y++)
+            Mat mask = LoadBadPixelMask(maskPath, width, height);
+
+            // Kết hợp mặt nạ bằng phép OR
+            Cv2.BitwiseOr(combinedMask, mask, combinedMask);
+
+            mask.Dispose();
+        }
+
+        return combinedMask;
+    }
+
+    /// <summary>
+    /// Đọc mặt nạ điểm ảnh lỗi từ file CSV
+    /// </summary>
+    private static Mat LoadBadPixelMask(string path, int targetWidth, int targetHeight)
+    {
+        string[] lines = File.ReadAllLines(path);
+        int originalHeight = lines.Length;
+        int originalWidth = lines[0].Split(';').Length;
+
+        Mat originalMask = new Mat(originalHeight, originalWidth, MatType.CV_8UC1);
+
+        for (int y = 0; y < originalHeight; y++)
+        {
+            string[] values = lines[y].Split(';');
+            for (int x = 0; x < originalWidth; x++)
             {
-                var parts = lines[y].Split(';');
-                if (parts.Length != originalWidth)
-                    throw new Exception($"Số cột trong dòng {y} ({parts.Length}) không khớp với chiều rộng mặt nạ ({originalWidth}).");
-
-                for (int x = 0; x < originalWidth; x++)
+                if (int.TryParse(values[x], out int value))
                 {
-                    if (!int.TryParse(parts[x], out int value) || (value != 0 && value != 1))
-                        throw new Exception($"Giá trị tại ({y}, {x}) không hợp lệ: {parts[x]}");
-                    originalMask[y, x] = value;
-                }
-            }
-
-            // Nếu kích thước mặt nạ khớp với kích thước mục tiêu, trả về ngay
-            if (originalWidth == targetWidth && originalHeight == targetHeight)
-                return originalMask;
-
-            // Resize mặt nạ bằng cách sử dụng OpenCvSharp
-            using (Mat maskMat = new Mat(originalHeight, originalWidth, MatType.CV_8UC1))
-            {
-                for (int y = 0; y < originalHeight; y++)
-                {
-                    for (int x = 0; x < originalWidth; x++)
-                    {
-                        maskMat.At<byte>(y, x) = (byte)originalMask[y, x];
-                    }
-                }
-
-                using (Mat resizedMaskMat = new Mat())
-                {
-                    Cv2.Resize(maskMat, resizedMaskMat, new OpenCvSharp.Size(targetWidth, targetHeight), 0, 0, InterpolationFlags.Nearest);
-                    int[,] resizedMask = new int[targetHeight, targetWidth];
-                    for (int y = 0; y < targetHeight; y++)
-                    {
-                        for (int x = 0; x < targetWidth; x++)
-                        {
-                            resizedMask[y, x] = resizedMaskMat.At<byte>(y, x);
-                        }
-                    }
-                    return resizedMask;
+                    originalMask.Set(y, x, (byte)(value > 0 ? 1 : 0));
                 }
             }
         }
-        catch (Exception ex)
+
+        // Resize mặt nạ nếu cần
+        if (originalWidth != targetWidth || originalHeight != targetHeight)
         {
-            throw new Exception($"Lỗi khi đọc file mặt nạ {Path.GetFileName(path)}: {ex.Message}");
+            Mat resizedMask = new Mat();
+            Cv2.Resize(originalMask, resizedMask, new OpenCvSharp.Size(targetWidth, targetHeight),
+                       interpolation: InterpolationFlags.Nearest);
+            originalMask.Dispose();
+            return resizedMask;
         }
+
+        return originalMask;
     }
 }
