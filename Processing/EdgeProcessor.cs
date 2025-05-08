@@ -1,64 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using OpenCvSharp;
+using System;
 
 namespace ImageProcessing.Processing
 {
-    public static class EdgeProcessor
+    public class EdgeProcessor
     {
-        public static int Clamp(int value, int min, int max)
+        /// <summary>
+        /// Enhance edges in an image using a Laplacian filter
+        /// </summary>
+        /// <param name="input">Input image</param>
+        /// <param name="strength">Edge enhancement strength (0.0-2.0)</param>
+        /// <returns>Edge-enhanced image</returns>
+        public static Mat ApplyEdgeEnhancement(Mat input, float strength = 1.0f)
         {
-            if (value < min) return min;
-            if (value > max) return max;
-            return value;
-        }
+            // Convert to grayscale if needed
+            Mat gray = new Mat();
+            if (input.Channels() == 3)
+                Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
+            else
+                gray = input.Clone();
 
-        public static Bitmap ApplyEdgeEnhancement(Bitmap input, float alpha = 1.0f)
-        {
-            Bitmap gray = ToGrayScale(input); 
-            Bitmap result = new Bitmap(gray.Width, gray.Height);
+            // Apply Laplacian filter for edge detection
+            Mat laplacian = new Mat();
+            Cv2.Laplacian(gray, laplacian, MatType.CV_16S, 3);
 
-            for (int y = 1; y < gray.Height - 1; y++)
+            // Convert back to CV_8U
+            Mat absLaplacian = new Mat();
+            Cv2.ConvertScaleAbs(laplacian, absLaplacian);
+
+            // Enhance the original image by adding weighted edges
+            Mat enhanced = new Mat();
+            Cv2.AddWeighted(gray, 1.0, absLaplacian, strength, 0, enhanced);
+
+            // Clean up
+            if (input.Channels() == 3)
             {
-                for (int x = 1; x < gray.Width - 1; x++)
-                {
-                    int edge = 8 * gray.GetPixel(x, y).R
-                             - gray.GetPixel(x - 1, y).R
-                             - gray.GetPixel(x + 1, y).R
-                             - gray.GetPixel(x, y - 1).R
-                             - gray.GetPixel(x, y + 1).R
-                             - gray.GetPixel(x - 1, y - 1).R
-                             - gray.GetPixel(x - 1, y + 1).R
-                             - gray.GetPixel(x + 1, y - 1).R
-                             - gray.GetPixel(x + 1, y + 1).R;
-
-                    Color orig = gray.GetPixel(x, y);
-                    int r = Clamp((int)(orig.R + alpha * edge), 0, 255);
-                    result.SetPixel(x, y, Color.FromArgb(r, r, r));
-                }
+                Mat colorResult = new Mat();
+                Cv2.CvtColor(enhanced, colorResult, ColorConversionCodes.GRAY2BGR);
+                gray.Dispose();
+                laplacian.Dispose();
+                absLaplacian.Dispose();
+                enhanced.Dispose();
+                return colorResult;
             }
 
-            return result;
+            gray.Dispose();
+            laplacian.Dispose();
+            absLaplacian.Dispose();
+            return enhanced;
         }
-
-
-        public static Bitmap ToGrayScale(Bitmap input)
-        {
-            Bitmap gray = new Bitmap(input.Width, input.Height);
-            for (int y = 0; y < input.Height; y++)
-            {
-                for (int x = 0; x < input.Width; x++)
-                {
-                    Color c = input.GetPixel(x, y);
-                    int grayValue = (int)(0.299 * c.R + 0.587 * c.G + 0.114 * c.B);
-                    gray.SetPixel(x, y, Color.FromArgb(grayValue, grayValue, grayValue));
-                }
-            }
-            return gray;
-        }
-
     }
 }

@@ -6,49 +6,77 @@ namespace ImageProcessing.Processing
     public class PostProcessor
     {
         private readonly int _frameCount;
-        private Queue<Mat> _buffer;
-        private Mat _sum;
+        private readonly int _step;
+        private Queue<Mat> _frameBuffer;
+        private Mat _accumulatedSum;
 
-        public PostProcessor(int frameCount)
+        /// <summary>
+        /// Creates a new Post Accumulation processor
+        /// </summary>
+        /// <param name="frameCount">Number of frames to accumulate</param>
+        /// <param name="step">Step size between frames (default: 1)</param>
+        public PostProcessor(int frameCount, int step = 1)
         {
             _frameCount = frameCount;
-            _buffer = new Queue<Mat>();
+            _step = step;
+            _frameBuffer = new Queue<Mat>();
         }
 
+        /// <summary>
+        /// Process a new frame with post accumulation
+        /// </summary>
+        /// <param name="newFrame">New frame to process</param>
+        /// <returns>Accumulated frame result</returns>
         public Mat Process(Mat newFrame)
         {
-            Mat normalized = newFrame / _frameCount;
+            // Convert to floating point for better precision in accumulation
+            Mat normalizedFrame = new Mat();
+            newFrame.ConvertTo(normalizedFrame, MatType.CV_32F);
 
-            if (_sum == null)
+            // Initialize accumulator if first frame
+            if (_accumulatedSum == null)
             {
-                _sum = normalized.Clone();
-                _buffer.Enqueue(normalized);
-                return _sum.Clone();
+                _accumulatedSum = normalizedFrame.Clone();
+                _frameBuffer.Enqueue(normalizedFrame);
+
+                // Return the first frame as is
+                Mat initialOutput = new Mat();  // Đổi tên thành initialOutput
+                _accumulatedSum.ConvertTo(initialOutput, MatType.CV_8U);
+                return initialOutput;
             }
 
-            if (_buffer.Count < _frameCount)
+            // Maintain the buffer size
+            if (_frameBuffer.Count >= _frameCount)
             {
-                _sum += normalized;
-                _buffer.Enqueue(normalized);
-            }
-            else
-            {
-                _sum += normalized;
-                Mat old = _buffer.Dequeue();
-                _sum -= old;
-                old.Dispose();
-                _buffer.Enqueue(normalized);
+                Mat oldestFrame = _frameBuffer.Dequeue();
+                Cv2.Subtract(_accumulatedSum, oldestFrame, _accumulatedSum);
+                oldestFrame.Dispose();
             }
 
-            return _sum.Clone();
+            // Add new frame to accumulator
+            Cv2.Add(_accumulatedSum, normalizedFrame, _accumulatedSum);
+            _frameBuffer.Enqueue(normalizedFrame);
+
+            // Calculate result by dividing by number of frames
+            Mat finalOutput = new Mat();  // Đổi tên thành finalOutput
+            Cv2.Divide(_accumulatedSum, new Scalar(_frameBuffer.Count), finalOutput);
+            finalOutput.ConvertTo(finalOutput, MatType.CV_8U);
+
+            return finalOutput;
         }
 
+        /// <summary>
+        /// Resets the accumulator
+        /// </summary>
         public void Reset()
         {
-            foreach (var f in _buffer) f.Dispose();
-            _buffer.Clear();
-            _sum?.Dispose();
-            _sum = null;
+            _accumulatedSum?.Dispose();
+            _accumulatedSum = null;
+
+            foreach (var frame in _frameBuffer)
+                frame.Dispose();
+
+            _frameBuffer.Clear();
         }
     }
 }

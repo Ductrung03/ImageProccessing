@@ -172,14 +172,17 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Processing\AgcProcessor.cs" />
     <Compile Include="Processing\AutoFocusProcessor.cs" />
+    <Compile Include="Processing\BinningProcessor.cs" />
     <Compile Include="Processing\BprProcessor.cs" />
     <Compile Include="Processing\DynamicBprProcessor.cs" />
     <Compile Include="Processing\EdgeProcessor.cs" />
+    <Compile Include="Processing\FlipProcessor.cs" />
+    <Compile Include="Processing\GammaProcessor.cs" />
     <Compile Include="Processing\ImageProcessor.cs" />
     <Compile Include="Processing\NucProcessor.cs" />
     <Compile Include="Processing\PostProcessor.cs" />
-    <Compile Include="Processing\VideoProcessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="IR_Camera.resx">

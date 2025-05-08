@@ -124,6 +124,7 @@ namespace ImageProcessing
             this.btnAgc = new System.Windows.Forms.Button();
             this.btnFlip = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.BtnBprDynamic = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.rdPicture = new System.Windows.Forms.RadioButton();
             this.lblPath = new System.Windows.Forms.Label();
@@ -144,7 +145,6 @@ namespace ImageProcessing
             this.pvDisplayControl2 = new System.Windows.Forms.PictureBox();
             this.groupBox9 = new System.Windows.Forms.GroupBox();
             this.pvDisplayControl3 = new System.Windows.Forms.PictureBox();
-            this.button1 = new System.Windows.Forms.Button();
             this.Zoom.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.Post.SuspendLayout();
@@ -1192,7 +1192,7 @@ namespace ImageProcessing
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.button1);
+            this.groupBox1.Controls.Add(this.BtnBprDynamic);
             this.groupBox1.Controls.Add(this.btnPost);
             this.groupBox1.Controls.Add(this.btnFlip);
             this.groupBox1.Controls.Add(this.btnAgc);
@@ -1210,6 +1210,15 @@ namespace ImageProcessing
             this.groupBox1.TabIndex = 26;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Process";
+            // 
+            // BtnBprDynamic
+            // 
+            this.BtnBprDynamic.Location = new System.Drawing.Point(459, 39);
+            this.BtnBprDynamic.Name = "BtnBprDynamic";
+            this.BtnBprDynamic.Size = new System.Drawing.Size(126, 75);
+            this.BtnBprDynamic.TabIndex = 26;
+            this.BtnBprDynamic.Text = "BRP Dynamic";
+            this.BtnBprDynamic.UseVisualStyleBackColor = true;
             // 
             // groupBox2
             // 
@@ -1450,15 +1459,6 @@ namespace ImageProcessing
             this.pvDisplayControl3.TabStop = false;
             this.pvDisplayControl3.Visible = false;
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(459, 39);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(126, 55);
-            this.button1.TabIndex = 26;
-            this.button1.Text = "BRP Dynamic";
-            this.button1.UseVisualStyleBackColor = true;
-            // 
             // IR_Camera
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(120F, 120F);
@@ -1641,6 +1641,6 @@ namespace ImageProcessing
         private PictureBox pvDisplayControl;
         private PictureBox pvDisplayControl2;
         private PictureBox pvDisplayControl3;
-        private Button button1;
+        private Button BtnBprDynamic;
     }
 }
