@@ -144,10 +144,10 @@ namespace ImageProcessing
             this.groupBox8 = new System.Windows.Forms.GroupBox();
             this.pvDisplayControl2 = new System.Windows.Forms.PictureBox();
             this.groupBox9 = new System.Windows.Forms.GroupBox();
+            this.textBoxAutoFocus = new System.Windows.Forms.TextBox();
+            this.textBoxFocus = new System.Windows.Forms.TextBox();
             this.pvDisplayControlFocus = new System.Windows.Forms.PictureBox();
             this.pvDisplayControl3 = new System.Windows.Forms.PictureBox();
-            this.textBoxFocus = new System.Windows.Forms.TextBox();
-            this.textBoxAutoFocus = new System.Windows.Forms.TextBox();
             this.Zoom.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.Post.SuspendLayout();
@@ -1465,6 +1465,28 @@ namespace ImageProcessing
             this.groupBox9.TabStop = false;
             this.groupBox9.Text = "groupBox9";
             // 
+            // textBoxAutoFocus
+            // 
+            this.textBoxAutoFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            this.textBoxAutoFocus.Location = new System.Drawing.Point(20, 355);
+            this.textBoxAutoFocus.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxAutoFocus.Multiline = true;
+            this.textBoxAutoFocus.Name = "textBoxAutoFocus";
+            this.textBoxAutoFocus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.textBoxAutoFocus.Size = new System.Drawing.Size(481, 65);
+            this.textBoxAutoFocus.TabIndex = 35;
+            // 
+            // textBoxFocus
+            // 
+            this.textBoxFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            this.textBoxFocus.Location = new System.Drawing.Point(118, 42);
+            this.textBoxFocus.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxFocus.Multiline = true;
+            this.textBoxFocus.Name = "textBoxFocus";
+            this.textBoxFocus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.textBoxFocus.Size = new System.Drawing.Size(383, 65);
+            this.textBoxFocus.TabIndex = 34;
+            // 
             // pvDisplayControlFocus
             // 
             this.pvDisplayControlFocus.Location = new System.Drawing.Point(20, 28);
@@ -1477,28 +1499,10 @@ namespace ImageProcessing
             // 
             this.pvDisplayControl3.Location = new System.Drawing.Point(20, 120);
             this.pvDisplayControl3.Name = "pvDisplayControl3";
-            this.pvDisplayControl3.Size = new System.Drawing.Size(481, 247);
+            this.pvDisplayControl3.Size = new System.Drawing.Size(481, 235);
             this.pvDisplayControl3.TabIndex = 17;
             this.pvDisplayControl3.TabStop = false;
             this.pvDisplayControl3.Visible = false;
-            // 
-            // textBoxFocus
-            // 
-            this.textBoxFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
-            this.textBoxFocus.Location = new System.Drawing.Point(118, 42);
-            this.textBoxFocus.Margin = new System.Windows.Forms.Padding(1);
-            this.textBoxFocus.Name = "textBoxFocus";
-            this.textBoxFocus.Size = new System.Drawing.Size(383, 36);
-            this.textBoxFocus.TabIndex = 34;
-            // 
-            // textBoxAutoFocus
-            // 
-            this.textBoxAutoFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
-            this.textBoxAutoFocus.Location = new System.Drawing.Point(20, 371);
-            this.textBoxAutoFocus.Margin = new System.Windows.Forms.Padding(1);
-            this.textBoxAutoFocus.Name = "textBoxAutoFocus";
-            this.textBoxAutoFocus.Size = new System.Drawing.Size(481, 36);
-            this.textBoxAutoFocus.TabIndex = 35;
             // 
             // IR_Camera
             // 

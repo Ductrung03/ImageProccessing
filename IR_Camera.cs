@@ -543,16 +543,28 @@ namespace ImageProcessing
             {
                 if (sourceMat == null || sourceMat.Empty()) return;
 
-                // Find sharpest region
                 Mat sharpestRegion = AutoFocusProcessor.GetSharpestRegionMat(sourceMat, 5, 5);
 
                 if (sharpestRegion != null && !sharpestRegion.Empty())
                 {
-                    // Display on UI thread
+                    double sharpnessScore = AutoFocusProcessor.CalculateSharpness(sharpestRegion);
+
+                    Mat gray = new Mat();
+                    if (sharpestRegion.Channels() > 1)
+                        Cv2.CvtColor(sharpestRegion, gray, ColorConversionCodes.BGR2GRAY);
+                    else
+                        gray = sharpestRegion.Clone();
+
+                    Cv2.MinMaxLoc(gray, out double min, out double max);
+                    double contrastRatio = max - min;
+
                     BeginInvoke(new Action(() =>
                     {
+                        textBoxAutoFocus.Text = $"Độ sắc nét: {sharpnessScore:F2}\r\nĐộ tương phản: {contrastRatio:F2}\r\nKích thước: {sharpestRegion.Width}x{sharpestRegion.Height}";
+
                         DisplayMatInPictureBox(sharpestRegion, pvDisplayControl3);
                         sharpestRegion.Dispose();
+                        gray.Dispose();
                     }));
                 }
             }
@@ -1360,17 +1372,32 @@ namespace ImageProcessing
             Rect roi = new Rect(x, y, width, height);
             Mat selectedRegion = new Mat(originalMat, roi).Clone();
 
-            // Thay đổi kích thước nếu cần - sửa đoạn này
+            // Tính toán các chỉ số focus
+            double sharpnessScore = Processing.AutoFocusProcessor.CalculateSharpness(selectedRegion);
+
+            // Tính các chỉ số phụ trợ khác
+            Mat gray = new Mat();
+            if (selectedRegion.Channels() > 1)
+                Cv2.CvtColor(selectedRegion, gray, ColorConversionCodes.BGR2GRAY);
+            else
+                gray = selectedRegion.Clone();
+
+            Cv2.MinMaxLoc(gray, out double min, out double max);
+            double contrastRatio = max - min;
+
+            // Hiển thị các chỉ số trong textbox
+            textBoxFocus.Text = $"Độ sắc nét: {sharpnessScore:F2}\r\nĐộ tương phản: {contrastRatio:F2}\r\nKích thước: {width}x{height}";
+
+            // Thay đổi kích thước và hiển thị trong pvDisplayControlFocus
             Mat resizedRegion = new Mat();
             OpenCvSharp.Size newSize = new OpenCvSharp.Size(pvDisplayControlFocus.Width, pvDisplayControlFocus.Height);
             Cv2.Resize(selectedRegion, resizedRegion, newSize);
-
-            // Hiển thị trong pvDisplayControl3
             DisplayMatInPictureBox(resizedRegion, pvDisplayControlFocus);
 
             // Dọn dẹp
             selectedRegion.Dispose();
             resizedRegion.Dispose();
+            gray.Dispose();
         }
 
         private void pvDisplayControl_Click(object sender, MouseEventArgs e)
