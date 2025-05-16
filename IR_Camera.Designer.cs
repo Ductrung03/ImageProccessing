@@ -1189,6 +1189,7 @@ namespace ImageProcessing
             this.btnFlip.TabIndex = 25;
             this.btnFlip.Text = "Flip";
             this.btnFlip.UseVisualStyleBackColor = true;
+            this.btnFlip.Click += new System.EventHandler(this.btnFlip_Click_1);
             // 
             // groupBox1
             // 
@@ -1219,6 +1220,7 @@ namespace ImageProcessing
             this.BtnBprDynamic.TabIndex = 26;
             this.BtnBprDynamic.Text = "BRP Dynamic";
             this.BtnBprDynamic.UseVisualStyleBackColor = true;
+            this.BtnBprDynamic.Click += new System.EventHandler(this.BtnBprDynamic_Click_1);
             // 
             // groupBox2
             // 
@@ -1345,7 +1347,7 @@ namespace ImageProcessing
             this.grpSetting.Margin = new System.Windows.Forms.Padding(1);
             this.grpSetting.Name = "grpSetting";
             this.grpSetting.Padding = new System.Windows.Forms.Padding(1);
-            this.grpSetting.Size = new System.Drawing.Size(858, 390);
+            this.grpSetting.Size = new System.Drawing.Size(858, 362);
             this.grpSetting.TabIndex = 29;
             this.grpSetting.TabStop = false;
             this.grpSetting.Text = "Setting";

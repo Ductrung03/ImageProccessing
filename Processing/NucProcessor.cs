@@ -6,34 +6,28 @@ namespace ImageProcessing.Processing
 {
     public class NucProcessor
     {
-        /// <summary>
-        /// Apply Non-Uniformity Correction to an image
-        /// </summary>
-        /// <param name="input">Input image</param>
-        /// <param name="gainMatrix">Gain correction matrix</param>
-        /// <param name="offsetMatrix">Offset correction matrix</param>
-        /// <returns>NUC-corrected image</returns>
+       
         public static Mat ApplyNuc(Mat input, Mat gainMatrix, Mat offsetMatrix)
         {
-            // Ensure dimensions match
+            
             if (input.Size() != gainMatrix.Size() || input.Size() != offsetMatrix.Size())
                 throw new ArgumentException("Input, gain, and offset matrices must have the same dimensions");
 
-            // Convert to 32-bit float for precision
+          
             Mat result = new Mat();
             Mat floatInput = new Mat();
             input.ConvertTo(floatInput, MatType.CV_32F);
 
-            // Apply gain and offset: result = input * gain + offset
+            
             Mat gainMultiplied = new Mat();
             Cv2.Multiply(floatInput, gainMatrix, gainMultiplied);
             Cv2.Add(gainMultiplied, offsetMatrix, result);
 
-            // Convert back to 8-bit
+           
             Mat output = new Mat();
             result.ConvertTo(output, MatType.CV_8U);
 
-            // Clean up
+          
             floatInput.Dispose();
             gainMultiplied.Dispose();
             result.Dispose();
@@ -41,9 +35,7 @@ namespace ImageProcessing.Processing
             return output;
         }
 
-        /// <summary>
-        /// Convert array-based gain/offset to Mat
-        /// </summary>
+       
         public static Mat ConvertArrayToMat(float[,] array)
         {
             int height = array.GetLength(0);
@@ -62,9 +54,7 @@ namespace ImageProcessing.Processing
             return result;
         }
 
-        /// <summary>
-        /// Load gain/offset matrix from CSV file
-        /// </summary>
+       
         public static Mat LoadMatrixFromCsv(string filePath, int width, int height)
         {
             if (!File.Exists(filePath))
@@ -91,7 +81,7 @@ namespace ImageProcessing.Processing
                 }
             }
 
-            // Resize if needed
+           
             if (fileWidth != width || fileHeight != height)
             {
                 Mat resized = new Mat();
@@ -103,18 +93,12 @@ namespace ImageProcessing.Processing
             return matrix;
         }
 
-        /// <summary>
-        /// Create NUC calibration matrices from thermal images
-        /// </summary>
-        /// <param name="lowTempImage">Low temperature reference image</param>
-        /// <param name="highTempImage">High temperature reference image</param>
-        /// <param name="gainMatrix">Output gain matrix</param>
-        /// <param name="offsetMatrix">Output offset matrix</param>
+        
         public static void CalculateNucMatrices(
             Mat lowTempImage, Mat highTempImage,
             out Mat gainMatrix, out Mat offsetMatrix)
         {
-            // Ensure grayscale
+            
             Mat lowGray = new Mat();
             Mat highGray = new Mat();
 
@@ -128,21 +112,19 @@ namespace ImageProcessing.Processing
             else
                 highGray = highTempImage.Clone();
 
-            // Convert to float for calculations
+            
             Mat lowFloat = new Mat();
             Mat highFloat = new Mat();
             lowGray.ConvertTo(lowFloat, MatType.CV_32F);
             highGray.ConvertTo(highFloat, MatType.CV_32F);
 
-            // Calculate average values
+          
             Scalar lowMean = Cv2.Mean(lowFloat);
             Scalar highMean = Cv2.Mean(highFloat);
             float v1 = (float)lowMean.Val0;
             float v2 = (float)highMean.Val0;
 
-            // Calculate gain and offset matrices
-            // Gain = (V2 - V1) / (P2 - P1)
-            // Offset = (V2*P1 - V1*P2) / (P1 - P2)
+            
 
             Mat diff = new Mat();
             Cv2.Subtract(highFloat, lowFloat, diff);
@@ -150,17 +132,17 @@ namespace ImageProcessing.Processing
             gainMatrix = new Mat(lowFloat.Size(), MatType.CV_32F);
             offsetMatrix = new Mat(lowFloat.Size(), MatType.CV_32F);
 
-            // To avoid division by zero
+            
             Mat mask = new Mat();
             Cv2.Compare(diff, new Scalar(0.001f), mask, CmpType.GT);
 
-            // Calculate gain
+            
             gainMatrix.SetTo(new Scalar(1.0f));
             Mat gainTemp = new Mat();
             Cv2.Divide(new Scalar(v2 - v1), diff, gainTemp, 1.0, MatType.CV_32F);
             gainTemp.CopyTo(gainMatrix, mask);
 
-            // Calculate offset
+           
             Mat offsetTemp1 = new Mat();
             Mat offsetTemp2 = new Mat();
             Cv2.Multiply(new Scalar(v2), lowFloat, offsetTemp1);
@@ -174,7 +156,7 @@ namespace ImageProcessing.Processing
 
             Cv2.Divide(offsetNumerator, offsetDenominator, offsetMatrix, 1.0, MatType.CV_32F);
 
-            // Clean up
+           
             lowGray.Dispose();
             highGray.Dispose();
             lowFloat.Dispose();

@@ -4,182 +4,229 @@ using System.IO;
 
 namespace ImageProcessing.Processing
 {
-    public class BprProcessor
+    public static class BprProcessor
     {
-        /// <summary>
-        /// Apply Bad Pixel Replacement to an image
-        /// </summary>
-        /// <param name="input">Input image</param>
-        /// <param name="badPixelMask">Bad pixel mask (1 = bad pixel, 0 = good pixel)</param>
-        /// <returns>Image with bad pixels replaced</returns>
-        public static Mat ApplyBpr(Mat input, Mat badPixelMask)
+        public static Mat ApplyBPR(Mat input, Mat badPixelMask)
         {
-            // Ensure mask and input are same size
-            if (input.Size() != badPixelMask.Size())
-                throw new ArgumentException("Input image and bad pixel mask must have the same dimensions");
 
-            // Clone input to avoid modifying original
+            if (input.Size() != badPixelMask.Size())
+                throw new ArgumentException("Kích thước ảnh đầu vào và mặt nạ điểm ảnh lỗi phải giống nhau");
+
+ 
             Mat result = input.Clone();
 
-            // Convert to grayscale if color image
+   
             Mat gray = new Mat();
             if (input.Channels() == 3)
                 Cv2.CvtColor(input, gray, ColorConversionCodes.BGR2GRAY);
             else
-                gray = input.Clone();
+                gray = input;
 
-            for (int y = 0; y < input.Height; y++)
+
+            int height = input.Rows;
+            int width = input.Cols;
+
+            unsafe
             {
-                for (int x = 0; x < input.Width; x++)
+
+                for (int y = 0; y < height; y++)
                 {
-                    // Skip if not a bad pixel
-                    if (badPixelMask.At<byte>(y, x) == 0)
-                        continue;
-
-                    // Method 1: Replace with average of 8 surrounding pixels
-                    int validNeighbors = 0;
-                    int sum = 0;
-
-                    for (int dy = -1; dy <= 1; dy++)
+                    for (int x = 0; x < width; x++)
                     {
-                        for (int dx = -1; dx <= 1; dx++)
+
+                        if (badPixelMask.At<byte>(y, x) == 1)
                         {
-                            if (dx == 0 && dy == 0) continue;
 
-                            int nx = x + dx;
-                            int ny = y + dy;
+                            int validNeighbors = 0;
+                            int sum = 0;
 
-                            if (nx >= 0 && nx < input.Width && ny >= 0 && ny < input.Height)
+                            for (int dy = -1; dy <= 1; dy++)
                             {
-                                // Only use good pixels for replacement
-                                if (badPixelMask.At<byte>(ny, nx) == 0)
+                                for (int dx = -1; dx <= 1; dx++)
                                 {
-                                    sum += gray.At<byte>(ny, nx);
-                                    validNeighbors++;
-                                }
-                            }
-                        }
-                    }
+                                    if (dx == 0 && dy == 0) continue;
 
-                    // If enough valid neighbors, use their average
-                    if (validNeighbors >= 3)
-                    {
-                        byte replacementValue = (byte)(sum / validNeighbors);
+                                    int nx = x + dx;
+                                    int ny = y + dy;
 
-                        if (input.Channels() == 3)
-                        {
-                            result.At<Vec3b>(y, x) = new Vec3b(replacementValue, replacementValue, replacementValue);
-                        }
-                        else
-                        {
-                            result.At<byte>(y, x) = replacementValue;
-                        }
-                    }
-                    else
-                    {
-                        // Method 2: Try 5x5 neighborhood (16 outer pixels)
-                        int extendedSum = 0;
-                        int extendedValidNeighbors = 0;
-
-                        for (int dy = -2; dy <= 2; dy++)
-                        {
-                            for (int dx = -2; dx <= 2; dx++)
-                            {
-                                if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue;
-
-                                int nx = x + dx;
-                                int ny = y + dy;
-
-                                if (nx >= 0 && nx < input.Width && ny >= 0 && ny < input.Height)
-                                {
-                                    if (badPixelMask.At<byte>(ny, nx) == 0)
+          
+                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height)
                                     {
-                                        extendedSum += gray.At<byte>(ny, nx);
-                                        extendedValidNeighbors++;
+                                        // Kiểm tra xem pixel này có tốt không
+                                        if (badPixelMask.At<byte>(ny, nx) == 0)
+                                        {
+                                            sum += gray.At<byte>(ny, nx);
+                                            validNeighbors++;
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if (extendedValidNeighbors > 0)
-                        {
-                            byte replacementValue = (byte)(extendedSum / extendedValidNeighbors);
+                            byte replacementValue;
 
-                            if (input.Channels() == 3)
+
+                            if (validNeighbors >= 3)
                             {
-                                result.At<Vec3b>(y, x) = new Vec3b(replacementValue, replacementValue, replacementValue);
+                                replacementValue = (byte)(sum / validNeighbors);
                             }
                             else
                             {
-                                result.At<byte>(y, x) = replacementValue;
+
+                                int extendedSum = 0;
+                                int extendedNeighbors = 0;
+
+                                for (int dy = -2; dy <= 2; dy++)
+                                {
+                                    for (int dx = -2; dx <= 2; dx++)
+                                    {
+
+                                        if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue;
+
+                                        int nx = x + dx;
+                                        int ny = y + dy;
+
+                                        if (nx >= 0 && nx < width && ny >= 0 && ny < height)
+                                        {
+                                            if (badPixelMask.At<byte>(ny, nx) == 0)
+                                            {
+                                                extendedSum += gray.At<byte>(ny, nx);
+                                                extendedNeighbors++;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (extendedNeighbors > 0)
+                                {
+                                    replacementValue = (byte)(extendedSum / extendedNeighbors);
+                                }
+                                else
+                                {
+
+                                    replacementValue = gray.At<byte>(y, x);
+                                }
+                            }
+
+
+                            if (input.Channels() == 3)
+                            {
+                                Vec3b color = new Vec3b(replacementValue, replacementValue, replacementValue);
+                                result.Set(y, x, color);
+                            }
+                            else
+                            {
+                                result.Set(y, x, replacementValue);
                             }
                         }
                     }
                 }
             }
 
-            gray.Dispose();
+            if (input != gray)
+                gray.Dispose();
+
             return result;
         }
 
-        /// <summary>
-        /// Load bad pixel mask from CSV file
-        /// </summary>
-        /// <param name="filePath">Path to CSV file</param>
-        /// <param name="width">Output width</param>
-        /// <param name="height">Output height</param>
-        /// <returns>Bad pixel mask as Mat</returns>
-        public static Mat LoadBadPixelMask(string filePath, int width, int height)
+        
+        public static int[,] LoadBPRMask(string path, int width, int height)
         {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Bad pixel mask file not found: {filePath}");
+            string[] lines = File.ReadAllLines(path);
+            int originalHeight = lines.Length;
+            int originalWidth = lines[0].Split(';').Length;
 
-            string[] lines = File.ReadAllLines(filePath);
-            int fileHeight = lines.Length;
-            int fileWidth = lines[0].Split(';').Length;
+            int[,] mask = new int[height, width];
 
-            Mat mask = new Mat(fileHeight, fileWidth, MatType.CV_8UC1);
 
-            for (int y = 0; y < fileHeight; y++)
+            if (originalHeight != height || originalWidth != width)
             {
-                string[] values = lines[y].Split(';');
-                for (int x = 0; x < Math.Min(fileWidth, values.Length); x++)
+
+                int[,] originalMask = new int[originalHeight, originalWidth];
+
+                for (int y = 0; y < originalHeight; y++)
                 {
-                    if (int.TryParse(values[x], out int value))
+                    string[] values = lines[y].Split(';');
+                    for (int x = 0; x < originalWidth && x < values.Length; x++)
                     {
-                        mask.At<byte>(y, x) = (byte)(value > 0 ? 1 : 0);
+                        if (int.TryParse(values[x], out int value))
+                        {
+                            originalMask[y, x] = (value > 0) ? 1 : 0;
+                        }
+                    }
+                }
+
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        int origX = (int)(x * (float)originalWidth / width);
+                        int origY = (int)(y * (float)originalHeight / height);
+
+                        if (origX < originalWidth && origY < originalHeight)
+                        {
+                            mask[y, x] = originalMask[origY, origX];
+                        }
                     }
                 }
             }
-
-            // Resize if needed
-            if (fileWidth != width || fileHeight != height)
+            else
             {
-                Mat resized = new Mat();
-                Cv2.Resize(mask, resized, new Size(width, height), 0, 0, InterpolationFlags.Nearest);
-                mask.Dispose();
-                return resized;
+
+                for (int y = 0; y < height && y < lines.Length; y++)
+                {
+                    string[] values = lines[y].Split(';');
+                    for (int x = 0; x < width && x < values.Length; x++)
+                    {
+                        if (int.TryParse(values[x], out int value))
+                        {
+                            mask[y, x] = (value > 0) ? 1 : 0;
+                        }
+                    }
+                }
             }
 
             return mask;
         }
 
-        /// <summary>
-        /// Creates a mask from multiple CSV files (combining with OR operation)
-        /// </summary>
-        public static Mat CombineBadPixelMasks(string[] filePaths, int width, int height)
+        public static Mat CreateMaskMat(int[,] mask)
         {
-            Mat combinedMask = Mat.Zeros(height, width, MatType.CV_8UC1);
+            int height = mask.GetLength(0);
+            int width = mask.GetLength(1);
 
-            foreach (string filePath in filePaths)
+            Mat maskMat = new Mat(height, width, MatType.CV_8UC1);
+
+            for (int y = 0; y < height; y++)
             {
-                using (Mat mask = LoadBadPixelMask(filePath, width, height))
+                for (int x = 0; x < width; x++)
                 {
-                    Cv2.BitwiseOr(combinedMask, mask, combinedMask);
+                    maskMat.Set(y, x, (byte)(mask[y, x]));
                 }
             }
 
-            return combinedMask;
+            return maskMat;
+        }
+
+       
+        public static System.Drawing.Bitmap ApplyBPR(System.Drawing.Bitmap input, int[,] badPixelMask)
+        {
+
+            Mat inputMat = OpenCvSharp.Extensions.BitmapConverter.ToMat(input);
+
+
+            Mat maskMat = CreateMaskMat(badPixelMask);
+
+  
+            Mat resultMat = ApplyBPR(inputMat, maskMat);
+
+
+            System.Drawing.Bitmap result = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(resultMat);
+
+            inputMat.Dispose();
+            maskMat.Dispose();
+            resultMat.Dispose();
+
+            return result;
         }
     }
 }
