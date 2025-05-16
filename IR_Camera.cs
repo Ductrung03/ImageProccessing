@@ -282,7 +282,7 @@ namespace ImageProcessing
                 ApplyActiveProcessors();
 
                 // Thử tìm và hiển thị vùng nét nhất để hỗ trợ lấy nét
-                //Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
+                Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
             }
             catch (Exception ex)
             {
@@ -420,11 +420,11 @@ namespace ImageProcessing
                     // Apply any active processors
                     ApplyActiveProcessors();
 
-                    //// Find and display sharpest region periodically
-                    //if (isFocusActive)
-                    //{
-                    //    Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
-                    //}
+                    // Find and display sharpest region periodically
+                    if (isFocusActive)
+                    {
+                        Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
+                    }
                 }
             }
         }
@@ -963,7 +963,7 @@ namespace ImageProcessing
 
         #region Binning Processor
 
-        private void btnBinning_Click(object sender, EventArgs e)
+        private void btnBinning_Click_1(object sender, EventArgs e)
         {
             try
             {
@@ -981,8 +981,8 @@ namespace ImageProcessing
                     isBinningActive = false;
                     btnBinning.BackColor = SystemColors.Control;
 
-                   
-                        // Re-apply other processors
+
+                    // Re-apply other processors
                     ApplyActiveProcessors();
                 }
             }
@@ -1018,7 +1018,7 @@ namespace ImageProcessing
 
         #region AGC Processor
 
-        private void btnAgc_Click(object sender, EventArgs e)
+        private void btnAgc_Click_1(object sender, EventArgs e)
         {
             try
             {
@@ -1206,7 +1206,7 @@ namespace ImageProcessing
 
         #region Gamma Processor
 
-        private void btnGamma_Click(object sender, EventArgs e)
+        private void btnGamma_Click_1(object sender, EventArgs e)
         {
             try
             {
@@ -1295,18 +1295,15 @@ namespace ImageProcessing
 
             // Tạo một bản sao của ảnh gốc
             Bitmap originalBitmap = new Bitmap(pictureBox.Image);
-            Bitmap gridBitmap = new Bitmap(originalBitmap);
+            Bitmap resultBitmap = new Bitmap(originalBitmap);
 
-            using (Graphics g = Graphics.FromImage(gridBitmap))
+            using (Graphics g = Graphics.FromImage(resultBitmap))
             {
-                int cellWidth = gridBitmap.Width / GRID_COLS;
-                int cellHeight = gridBitmap.Height / GRID_ROWS;
+                int cellWidth = resultBitmap.Width / GRID_COLS;
+                int cellHeight = resultBitmap.Height / GRID_ROWS;
 
                 // Tạo mảng chứa thông tin về các ô trong lưới
                 gridCells = new Rectangle[GRID_ROWS * GRID_COLS];
-
-                // Vẽ lưới
-                Pen pen = new Pen(Color.Yellow, 2);
 
                 for (int row = 0; row < GRID_ROWS; row++)
                 {
@@ -1319,24 +1316,24 @@ namespace ImageProcessing
                         Rectangle cell = new Rectangle(x, y, cellWidth, cellHeight);
                         gridCells[index] = cell;
 
-                        // Nếu ô này được chọn, vẽ với màu khác
+                        // Nếu ô này được chọn, vẽ với màu khác (tùy chọn)
                         if (index == selectedGridCell)
                         {
-                            g.DrawRectangle(new Pen(Color.Red, 3), cell);
+                            // Vẽ đường viền nhẹ hoặc chỉ báo đã chọn cho ô đã chọn
+                            using (Pen pen = new Pen(Color.Red, 2))
+                            {
+                                g.DrawRectangle(pen, cell);
+                            }
                         }
-                        else
-                        {
-                            g.DrawRectangle(pen, cell);
-                        }
+
+                        // Không vẽ các đường kẻ lưới cho các ô khác
                     }
                 }
-
-                pen.Dispose();
             }
 
             // Cập nhật ảnh trong PictureBox
             pictureBox.Image?.Dispose();
-            pictureBox.Image = gridBitmap;
+            pictureBox.Image = resultBitmap;
             originalBitmap.Dispose();
         }
 
@@ -1365,11 +1362,11 @@ namespace ImageProcessing
 
             // Thay đổi kích thước nếu cần - sửa đoạn này
             Mat resizedRegion = new Mat();
-            OpenCvSharp.Size newSize = new OpenCvSharp.Size(pvDisplayControl3.Width, pvDisplayControl3.Height);
+            OpenCvSharp.Size newSize = new OpenCvSharp.Size(pvDisplayControlFocus.Width, pvDisplayControlFocus.Height);
             Cv2.Resize(selectedRegion, resizedRegion, newSize);
 
             // Hiển thị trong pvDisplayControl3
-            DisplayMatInPictureBox(resizedRegion, pvDisplayControl3);
+            DisplayMatInPictureBox(resizedRegion, pvDisplayControlFocus);
 
             // Dọn dẹp
             selectedRegion.Dispose();
@@ -1435,10 +1432,10 @@ namespace ImageProcessing
                     }
 
                     // Xóa ảnh trong pvDisplayControl3
-                    if (pvDisplayControl3.Image != null)
+                    if (pvDisplayControlFocus.Image != null)
                     {
-                        pvDisplayControl3.Image.Dispose();
-                        pvDisplayControl3.Image = null;
+                        pvDisplayControlFocus.Image.Dispose();
+                        pvDisplayControlFocus.Image = null;
                     }
 
                     selectedGridCell = -1;
@@ -1584,6 +1581,9 @@ namespace ImageProcessing
 
         }
 
-        
+        private void grpSetting_Enter(object sender, EventArgs e)
+        {
+
+        }
     }
 }

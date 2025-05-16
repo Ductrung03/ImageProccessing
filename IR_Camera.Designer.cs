@@ -144,7 +144,10 @@ namespace ImageProcessing
             this.groupBox8 = new System.Windows.Forms.GroupBox();
             this.pvDisplayControl2 = new System.Windows.Forms.PictureBox();
             this.groupBox9 = new System.Windows.Forms.GroupBox();
+            this.pvDisplayControlFocus = new System.Windows.Forms.PictureBox();
             this.pvDisplayControl3 = new System.Windows.Forms.PictureBox();
+            this.textBoxFocus = new System.Windows.Forms.TextBox();
+            this.textBoxAutoFocus = new System.Windows.Forms.TextBox();
             this.Zoom.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.Post.SuspendLayout();
@@ -173,6 +176,7 @@ namespace ImageProcessing
             this.groupBox8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControl2)).BeginInit();
             this.groupBox9.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControlFocus)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControl3)).BeginInit();
             this.SuspendLayout();
             // 
@@ -1106,6 +1110,7 @@ namespace ImageProcessing
             this.btnGamma.TabIndex = 1;
             this.btnGamma.Text = "Gamma";
             this.btnGamma.UseVisualStyleBackColor = true;
+            this.btnGamma.Click += new System.EventHandler(this.btnGamma_Click_1);
             // 
             // btnEdge
             // 
@@ -1168,6 +1173,7 @@ namespace ImageProcessing
             this.btnBinning.TabIndex = 23;
             this.btnBinning.Text = "Binning";
             this.btnBinning.UseVisualStyleBackColor = true;
+            this.btnBinning.Click += new System.EventHandler(this.btnBinning_Click_1);
             // 
             // btnAgc
             // 
@@ -1179,6 +1185,7 @@ namespace ImageProcessing
             this.btnAgc.TabIndex = 24;
             this.btnAgc.Text = "Agc";
             this.btnAgc.UseVisualStyleBackColor = true;
+            this.btnAgc.Click += new System.EventHandler(this.btnAgc_Click_1);
             // 
             // btnFlip
             // 
@@ -1352,6 +1359,7 @@ namespace ImageProcessing
             this.grpSetting.TabIndex = 29;
             this.grpSetting.TabStop = false;
             this.grpSetting.Text = "Setting";
+            this.grpSetting.Enter += new System.EventHandler(this.grpSetting_Enter);
             // 
             // btnSendToFPGA
             // 
@@ -1444,6 +1452,9 @@ namespace ImageProcessing
             // 
             // groupBox9
             // 
+            this.groupBox9.Controls.Add(this.textBoxAutoFocus);
+            this.groupBox9.Controls.Add(this.textBoxFocus);
+            this.groupBox9.Controls.Add(this.pvDisplayControlFocus);
             this.groupBox9.Controls.Add(this.pvDisplayControl3);
             this.groupBox9.Location = new System.Drawing.Point(1101, 18);
             this.groupBox9.Margin = new System.Windows.Forms.Padding(1);
@@ -1454,14 +1465,40 @@ namespace ImageProcessing
             this.groupBox9.TabStop = false;
             this.groupBox9.Text = "groupBox9";
             // 
+            // pvDisplayControlFocus
+            // 
+            this.pvDisplayControlFocus.Location = new System.Drawing.Point(20, 28);
+            this.pvDisplayControlFocus.Name = "pvDisplayControlFocus";
+            this.pvDisplayControlFocus.Size = new System.Drawing.Size(94, 86);
+            this.pvDisplayControlFocus.TabIndex = 33;
+            this.pvDisplayControlFocus.TabStop = false;
+            // 
             // pvDisplayControl3
             // 
-            this.pvDisplayControl3.Location = new System.Drawing.Point(4, 28);
+            this.pvDisplayControl3.Location = new System.Drawing.Point(20, 120);
             this.pvDisplayControl3.Name = "pvDisplayControl3";
-            this.pvDisplayControl3.Size = new System.Drawing.Size(499, 378);
+            this.pvDisplayControl3.Size = new System.Drawing.Size(481, 247);
             this.pvDisplayControl3.TabIndex = 17;
             this.pvDisplayControl3.TabStop = false;
             this.pvDisplayControl3.Visible = false;
+            // 
+            // textBoxFocus
+            // 
+            this.textBoxFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            this.textBoxFocus.Location = new System.Drawing.Point(118, 42);
+            this.textBoxFocus.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxFocus.Name = "textBoxFocus";
+            this.textBoxFocus.Size = new System.Drawing.Size(383, 36);
+            this.textBoxFocus.TabIndex = 34;
+            // 
+            // textBoxAutoFocus
+            // 
+            this.textBoxAutoFocus.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            this.textBoxAutoFocus.Location = new System.Drawing.Point(20, 371);
+            this.textBoxAutoFocus.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxAutoFocus.Name = "textBoxAutoFocus";
+            this.textBoxAutoFocus.Size = new System.Drawing.Size(481, 36);
+            this.textBoxAutoFocus.TabIndex = 35;
             // 
             // IR_Camera
             // 
@@ -1525,6 +1562,8 @@ namespace ImageProcessing
             this.groupBox8.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControl2)).EndInit();
             this.groupBox9.ResumeLayout(false);
+            this.groupBox9.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControlFocus)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pvDisplayControl3)).EndInit();
             this.ResumeLayout(false);
 
@@ -1646,5 +1685,8 @@ namespace ImageProcessing
         private PictureBox pvDisplayControl2;
         private PictureBox pvDisplayControl3;
         private Button BtnBprDynamic;
+        private PictureBox pvDisplayControlFocus;
+        private TextBox textBoxAutoFocus;
+        private TextBox textBoxFocus;
     }
 }
