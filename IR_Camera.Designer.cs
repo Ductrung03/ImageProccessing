@@ -1094,6 +1094,7 @@ namespace ImageProcessing
             this.btnFocus.TabIndex = 19;
             this.btnFocus.Text = "Focus";
             this.btnFocus.UseVisualStyleBackColor = true;
+            this.btnFocus.Click += new System.EventHandler(this.btnFocus_Click_1);
             // 
             // btnGamma
             // 
@@ -1418,6 +1419,7 @@ namespace ImageProcessing
             this.pvDisplayControl.TabIndex = 15;
             this.pvDisplayControl.TabStop = false;
             this.pvDisplayControl.Visible = false;
+            this.pvDisplayControl.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pvDisplayControl_Click);
             // 
             // groupBox8
             // 

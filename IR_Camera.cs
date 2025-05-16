@@ -16,6 +16,13 @@ namespace ImageProcessing
     {
         #region Fields
 
+        // Lưới focus 5x5
+        private const int GRID_ROWS = 5;
+        private const int GRID_COLS = 5;
+        private Rectangle[] gridCells;
+        private bool isGridVisible = false;
+        private int selectedGridCell = -1; // -1 nghĩa là không có ô nào được chọn
+
         // Nguồn đầu vào
         private VideoCapture videoCapture;
         private Mat currentFrame;
@@ -88,6 +95,9 @@ namespace ImageProcessing
 
             // Mặc định chọn CameraLink
             rdCAMLink.Checked = true;
+
+           
+            pvDisplayControl.MouseClick += pvDisplayControl_Click;
         }
 
         private void SetupTemperatureComboBox()
@@ -272,7 +282,7 @@ namespace ImageProcessing
                 ApplyActiveProcessors();
 
                 // Thử tìm và hiển thị vùng nét nhất để hỗ trợ lấy nét
-                Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
+                //Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
             }
             catch (Exception ex)
             {
@@ -410,11 +420,11 @@ namespace ImageProcessing
                     // Apply any active processors
                     ApplyActiveProcessors();
 
-                    // Find and display sharpest region periodically
-                    if (isFocusActive)
-                    {
-                        Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
-                    }
+                    //// Find and display sharpest region periodically
+                    //if (isFocusActive)
+                    //{
+                    //    Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
+                    //}
                 }
             }
         }
@@ -478,6 +488,16 @@ namespace ImageProcessing
                 {
                     ApplyGammaProcessor();
                 }
+                if (isGridVisible)
+                {
+                    DrawGrid(pvDisplayControl);
+
+                    // Cập nhật hiển thị ô được chọn nếu có
+                    if (selectedGridCell >= 0)
+                    {
+                        ShowSelectedGridCell();
+                    }
+                }
 
                 // Display processed image
                 DisplayMatInPictureBox(processedMat, pvDisplayControl2);
@@ -494,15 +514,21 @@ namespace ImageProcessing
 
             try
             {
-                // Convert Mat to Bitmap for display
+                // Chuyển đổi Mat thành Bitmap để hiển thị
                 using (Bitmap bmp = BitmapConverter.ToBitmap(mat))
                 {
-                    // Dispose previous image
+                    // Giải phóng ảnh trước đó
                     pictureBox.Image?.Dispose();
 
-                    // Set new image
+                    // Đặt ảnh mới
                     pictureBox.Image = new Bitmap(bmp);
                     pictureBox.Visible = true;
+
+                    // Nếu đang ở chế độ lưới và pictureBox là pvDisplayControl, vẽ lại lưới
+                    if (isGridVisible && pictureBox == pvDisplayControl)
+                    {
+                        DrawGrid(pictureBox);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1263,41 +1289,167 @@ namespace ImageProcessing
         #endregion
 
         #region Focus Processor
+        private void DrawGrid(PictureBox pictureBox)
+        {
+            if (pictureBox.Image == null) return;
 
-        private void btnFocus_Click(object sender, EventArgs e)
+            // Tạo một bản sao của ảnh gốc
+            Bitmap originalBitmap = new Bitmap(pictureBox.Image);
+            Bitmap gridBitmap = new Bitmap(originalBitmap);
+
+            using (Graphics g = Graphics.FromImage(gridBitmap))
+            {
+                int cellWidth = gridBitmap.Width / GRID_COLS;
+                int cellHeight = gridBitmap.Height / GRID_ROWS;
+
+                // Tạo mảng chứa thông tin về các ô trong lưới
+                gridCells = new Rectangle[GRID_ROWS * GRID_COLS];
+
+                // Vẽ lưới
+                Pen pen = new Pen(Color.Yellow, 2);
+
+                for (int row = 0; row < GRID_ROWS; row++)
+                {
+                    for (int col = 0; col < GRID_COLS; col++)
+                    {
+                        int index = row * GRID_COLS + col;
+                        int x = col * cellWidth;
+                        int y = row * cellHeight;
+
+                        Rectangle cell = new Rectangle(x, y, cellWidth, cellHeight);
+                        gridCells[index] = cell;
+
+                        // Nếu ô này được chọn, vẽ với màu khác
+                        if (index == selectedGridCell)
+                        {
+                            g.DrawRectangle(new Pen(Color.Red, 3), cell);
+                        }
+                        else
+                        {
+                            g.DrawRectangle(pen, cell);
+                        }
+                    }
+                }
+
+                pen.Dispose();
+            }
+
+            // Cập nhật ảnh trong PictureBox
+            pictureBox.Image?.Dispose();
+            pictureBox.Image = gridBitmap;
+            originalBitmap.Dispose();
+        }
+
+        private void ShowSelectedGridCell()
+        {
+            if (selectedGridCell < 0 || originalMat == null || originalMat.Empty()) return;
+
+            int row = selectedGridCell / GRID_COLS;
+            int col = selectedGridCell % GRID_COLS;
+
+            int cellWidth = originalMat.Width / GRID_COLS;
+            int cellHeight = originalMat.Height / GRID_ROWS;
+
+            int x = col * cellWidth;
+            int y = row * cellHeight;
+
+            // Kiểm tra giới hạn
+            if (x >= originalMat.Width || y >= originalMat.Height) return;
+
+            int width = Math.Min(cellWidth, originalMat.Width - x);
+            int height = Math.Min(cellHeight, originalMat.Height - y);
+
+            // Cắt vùng tương ứng từ ảnh gốc
+            Rect roi = new Rect(x, y, width, height);
+            Mat selectedRegion = new Mat(originalMat, roi).Clone();
+
+            // Thay đổi kích thước nếu cần - sửa đoạn này
+            Mat resizedRegion = new Mat();
+            OpenCvSharp.Size newSize = new OpenCvSharp.Size(pvDisplayControl3.Width, pvDisplayControl3.Height);
+            Cv2.Resize(selectedRegion, resizedRegion, newSize);
+
+            // Hiển thị trong pvDisplayControl3
+            DisplayMatInPictureBox(resizedRegion, pvDisplayControl3);
+
+            // Dọn dẹp
+            selectedRegion.Dispose();
+            resizedRegion.Dispose();
+        }
+
+        private void pvDisplayControl_Click(object sender, MouseEventArgs e)
+        {
+            if (!isGridVisible || gridCells == null || originalMat == null || originalMat.Empty()) return;
+
+            // Lấy tỷ lệ giữa kích thước thực của ảnh và kích thước hiển thị
+            float scaleX = (float)originalMat.Width / pvDisplayControl.ClientSize.Width;
+            float scaleY = (float)originalMat.Height / pvDisplayControl.ClientSize.Height;
+
+            // Quy đổi tọa độ chuột sang tọa độ trong ảnh gốc
+            int imageX = (int)(e.X * scaleX);
+            int imageY = (int)(e.Y * scaleY);
+
+            // Tính chỉ số ô trực tiếp dựa trên tọa độ đã quy đổi
+            int cellWidth = originalMat.Width / GRID_COLS;
+            int cellHeight = originalMat.Height / GRID_ROWS;
+
+            int col = Math.Min(imageX / cellWidth, GRID_COLS - 1);
+            int row = Math.Min(imageY / cellHeight, GRID_ROWS - 1);
+
+            // Tính chỉ số ô từ hàng và cột
+            selectedGridCell = row * GRID_COLS + col;
+
+            // Hiển thị ô đã chọn và cập nhật giao diện
+            ShowSelectedGridCell();
+            DrawGrid(pvDisplayControl);
+        }
+
+        
+
+        private void btnFocus_Click_1(object sender, EventArgs e)
         {
             try
             {
                 if (!isFocusActive)
                 {
                     isFocusActive = true;
+                    isGridVisible = true;
                     btnFocus.BackColor = Color.LightBlue;
 
-                    // Find and display sharpest region if image is already loaded
+                    // Vẽ lưới nếu đã có ảnh
                     if (originalMat != null && !originalMat.Empty())
                     {
-                        Task.Run(() => FindAndDisplaySharpestRegion(originalMat));
+                        DrawGrid(pvDisplayControl);
                     }
                 }
                 else
                 {
-                    // Deactivate Focus
+                    // Hủy kích hoạt Focus
                     isFocusActive = false;
+                    isGridVisible = false;
                     btnFocus.BackColor = SystemColors.Control;
 
-                    // Clear focus display
+                    // Xóa lưới bằng cách hiển thị lại ảnh gốc
+                    if (originalMat != null && !originalMat.Empty())
+                    {
+                        DisplayMatInPictureBox(originalMat, pvDisplayControl);
+                    }
+
+                    // Xóa ảnh trong pvDisplayControl3
                     if (pvDisplayControl3.Image != null)
                     {
                         pvDisplayControl3.Image.Dispose();
                         pvDisplayControl3.Image = null;
                     }
+
+                    selectedGridCell = -1;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error in Focus Processor: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error in Focus Grid: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
         #endregion
 
@@ -1311,11 +1463,23 @@ namespace ImageProcessing
                 if (!string.IsNullOrEmpty(currentFilePath) && rdVideo.Checked)
                 {
                     StartVideoProcessing(currentFilePath);
+
+                    // Thêm đoạn này ở đây
+                    if (isGridVisible)
+                    {
+                        DrawGrid(pvDisplayControl);
+                    }
                 }
                 else if (!string.IsNullOrEmpty(currentFilePath) && rdPicture.Checked)
                 {
                     // Reload current image
                     LoadImageFile(currentFilePath);
+
+                    // Thêm đoạn này ở đây
+                    if (isGridVisible)
+                    {
+                        DrawGrid(pvDisplayControl);
+                    }
                 }
                 else
                 {
@@ -1419,5 +1583,7 @@ namespace ImageProcessing
         {
 
         }
+
+        
     }
 }
